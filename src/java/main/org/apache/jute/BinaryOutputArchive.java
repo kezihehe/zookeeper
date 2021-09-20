@@ -84,6 +84,7 @@ public class BinaryOutputArchive implements OutputArchive {
                 bb = n;
             }
             char c = s.charAt(i);
+            // c < 128
             if (c < 0x80) {
                 bb.put((byte) c);
             } else if (c < 0x800) {

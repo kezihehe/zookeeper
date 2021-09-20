@@ -41,7 +41,7 @@ public final class ConnectStringParser {
     private final ArrayList<InetSocketAddress> serverAddresses = new ArrayList<InetSocketAddress>();
 
     /**
-     * 
+     * 127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002/app/a
      * @throws IllegalArgumentException
      *             for an invalid chroot path.
      */
@@ -62,6 +62,7 @@ public final class ConnectStringParser {
             this.chrootPath = null;
         }
 
+        /** 127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002 */
         String hostsList[] = connectString.split(",");
         for (String host : hostsList) {
             int port = DEFAULT_PORT;
@@ -73,6 +74,7 @@ public final class ConnectStringParser {
                 }
                 host = host.substring(0, pidx);
             }
+            /** 创建地址，但是并不解析地址 */
             serverAddresses.add(InetSocketAddress.createUnresolved(host, port));
         }
     }

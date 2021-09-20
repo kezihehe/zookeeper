@@ -43,6 +43,7 @@ public interface HostProvider {
     public int size();
 
     /**
+     * 返回下一个尝试连接的Server端地址
      * The next host to try to connect to.
      * 
      * For a spinDelay of 0 there should be no wait.

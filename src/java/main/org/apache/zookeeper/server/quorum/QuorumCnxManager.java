@@ -86,7 +86,7 @@ public class QuorumCnxManager {
     /*
      * Connection time out value in milliseconds 
      */
-    
+    /** 连接超时时间，通过zookeeper.cnxTimeout参数设置 */
     private int cnxTO = 5000;
     
     /*

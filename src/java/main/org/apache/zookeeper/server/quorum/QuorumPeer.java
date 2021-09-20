@@ -463,6 +463,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
     }
     synchronized public void startLeaderElection() {
     	try {
+    	    /** 创建选票 */
     		currentVote = new Vote(myid, getLastLoggedZxid(), getCurrentEpoch());
     	} catch(IOException e) {
     		RuntimeException re = new RuntimeException(e.getMessage());
@@ -471,6 +472,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
     	}
         for (QuorumServer p : getView().values()) {
             if (p.id == myid) {
+                /** 找到自己的IP地址，存储下来 */
                 myQuorumAddr = p.addr;
                 break;
             }
@@ -480,6 +482,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
         }
         if (electionType == 0) {
             try {
+                /** 使用UDP协议选举，现在已经废弃 */
                 udpSocket = new DatagramSocket(myQuorumAddr.getPort());
                 responder = new ResponderThread();
                 responder.start();
@@ -571,6 +574,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
         Election le=null;
                 
         //TODO: use a factory rather than a switch
+        /** 目前只支持FastLeaderElection选举算法 */
         switch (electionAlgorithm) {
         case 0:
             le = new LeaderElection(this);
@@ -582,6 +586,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
             le = new AuthFastLeaderElection(this, true);
             break;
         case 3:
+            /** 用于zk各节点网络通信组件 */
             qcm = new QuorumCnxManager(this);
             QuorumCnxManager.Listener listener = qcm.listener;
             if(listener != null){

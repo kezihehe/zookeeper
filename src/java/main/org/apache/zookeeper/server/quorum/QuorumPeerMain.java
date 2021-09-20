@@ -98,10 +98,12 @@ public class QuorumPeerMain {
     {
         QuorumPeerConfig config = new QuorumPeerConfig();
         if (args.length == 1) {
+            /** 命令行只传入一个参数，则认为是配置文件，并解析配置文件 */
             config.parse(args[0]);
         }
 
         // Start and schedule the the purge task
+        /** 启动定期清理datadir中日志、快照的后台任务 */
         DatadirCleanupManager purgeMgr = new DatadirCleanupManager(config
                 .getDataDir(), config.getDataLogDir(), config
                 .getSnapRetainCount(), config.getPurgeInterval());
@@ -129,7 +131,8 @@ public class QuorumPeerMain {
           ServerCnxnFactory cnxnFactory = ServerCnxnFactory.createFactory();
           cnxnFactory.configure(config.getClientPortAddress(),
                                 config.getMaxClientCnxns());
-  
+
+          /** 创建一个ZK节点 */
           quorumPeer = new QuorumPeer();
           quorumPeer.setClientPortAddress(config.getClientPortAddress());
           quorumPeer.setTxnFactory(new FileTxnSnapLog(
