@@ -87,6 +87,7 @@ public class ZooKeeper {
 
     public static final String ZOOKEEPER_CLIENT_CNXN_SOCKET = "zookeeper.clientCnxnSocket";
 
+    /** zk客户端和服务端底层通讯的接口 */
     protected final ClientCnxn cnxn;
     private static final Logger LOG;
     static {
@@ -132,7 +133,7 @@ public class ZooKeeper {
             new HashMap<String, Set<Watcher>>();
         private final Map<String, Set<Watcher>> existWatches =
             new HashMap<String, Set<Watcher>>();
-        private final Map<String, Set<Watcher>> childWatches =
+        private final Map<String, Set<Watcher>> ç =
             new HashMap<String, Set<Watcher>>();
 
         private volatile Watcher defaultWatcher;
@@ -440,8 +441,10 @@ public class ZooKeeper {
 
         watchManager.defaultWatcher = watcher;
 
+        /** 解析连接字符串，例如: 127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002/app/a */
         ConnectStringParser connectStringParser = new ConnectStringParser(
                 connectString);
+        /** Server主机提供者，供client随机挑选Server地址 */
         HostProvider hostProvider = new StaticHostProvider(
                 connectStringParser.getServerAddresses());
         cnxn = new ClientCnxn(connectStringParser.getChrootPath(),
@@ -764,7 +767,7 @@ public class ZooKeeper {
     {
         final String clientPath = path;
         PathUtils.validatePath(clientPath, createMode.isSequential());
-
+        /** 如果当前客户端设置了chroot，实际路径要增加chroot */
         final String serverPath = prependChroot(clientPath);
 
         RequestHeader h = new RequestHeader();
@@ -1765,6 +1768,13 @@ public class ZooKeeper {
         return cnxn.sendThread.getClientCnxnSocket().getLocalSocketAddress();
     }
 
+    /**
+     * 获取客户端与服务端交互的网络类，给用户提供一个扩展点，
+     * 如果用户配置了自定义的，则使用用户自己的
+     * 如果没有配置，使用默认的ClientCnxnSocketNIO
+     * @return
+     * @throws IOException
+     */
     private static ClientCnxnSocket getClientCnxnSocket() throws IOException {
         String clientCnxnSocketName = System
                 .getProperty(ZOOKEEPER_CLIENT_CNXN_SOCKET);
