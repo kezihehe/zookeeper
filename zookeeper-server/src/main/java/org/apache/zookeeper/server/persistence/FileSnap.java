@@ -66,6 +66,7 @@ public class FileSnap implements SnapShot {
     }
 
     /**
+     * 根据最近的一份快照，恢复数据
      * deserialize a data tree from the most recent snapshot
      * @return the zxid of the snapshot
      */
@@ -73,6 +74,7 @@ public class FileSnap implements SnapShot {
         // we run through 100 snapshots (not all of them)
         // if we cannot get it running within 100 snapshots
         // we should  give up
+        /** 查找最近100个快照文件，底层是倒序排序 */
         List<File> snapList = findNValidSnapshots(100);
         if (snapList.size() == 0) {
             return -1L;
@@ -83,10 +85,13 @@ public class FileSnap implements SnapShot {
         for (int i = 0, snapListSize = snapList.size(); i < snapListSize; i++) {
             snap = snapList.get(i);
             LOG.info("Reading snapshot {}", snap);
+            /** 获取快照文件中的最大zxId */
             snapZxid = Util.getZxidFromName(snap.getName(), SNAPSHOT_FILE_PREFIX);
             try (CheckedInputStream snapIS = SnapStream.getInputStream(snap)) {
                 InputArchive ia = BinaryInputArchive.getArchive(snapIS);
+                /** 反序列化DataTree、Session，并校验文件头魔数 */
                 deserialize(dt, sessions, ia);
+                /** 校验校验和是否正确 */
                 SnapStream.checkSealIntegrity(snapIS, ia);
 
                 // Digest feature was added after the CRC to make it backward
@@ -108,12 +113,15 @@ public class FileSnap implements SnapShot {
         if (!foundValid) {
             throw new IOException("Not able to find valid snapshots in " + snapDir);
         }
+        /** 从快照中反序列化出DataTree的最大zxId就是快照文件的最大zxId */
         dt.lastProcessedZxid = snapZxid;
+        /** 持有最新的快照文件句柄 */
         lastSnapshotInfo = new SnapshotInfo(dt.lastProcessedZxid, snap.lastModified() / 1000);
 
         // compare the digest if this is not a fuzzy snapshot, we want to compare
         // and find inconsistent asap.
         if (dt.getDigestFromLoadedSnapshot() != null) {
+            /** 校验DataTree的信息摘要 */
             dt.compareSnapshotDigests(dt.lastProcessedZxid);
         }
         return dt.lastProcessedZxid;
@@ -160,6 +168,7 @@ public class FileSnap implements SnapShot {
      * @throws IOException
      */
     protected List<File> findNValidSnapshots(int n) throws IOException {
+        /** snapDir目录下快照文件倒序排 */
         List<File> files = Util.sortDataDir(snapDir.listFiles(), SNAPSHOT_FILE_PREFIX, false);
         int count = 0;
         List<File> list = new ArrayList<File>();
@@ -223,6 +232,7 @@ public class FileSnap implements SnapShot {
         if (header == null) {
             throw new IllegalStateException("Snapshot's not open for writing: uninitialized header");
         }
+        /** 序列化文件头 + 序列化Session + 序列化DataTree */
         header.serialize(oa, "fileheader");
         SerializeUtils.serializeSnapshot(dt, oa, sessions);
     }
@@ -240,10 +250,15 @@ public class FileSnap implements SnapShot {
         File snapShot,
         boolean fsync) throws IOException {
         if (!close) {
+            /** 获取到文件输出流，并将输出流包装成校验和输出流，方便写完数据后，获取校验和 */
             try (CheckedOutputStream snapOS = SnapStream.getOutputStream(snapShot, fsync)) {
+                /** 获取到jute序列化输出流 */
                 OutputArchive oa = BinaryOutputArchive.getArchive(snapOS);
+                /** 构建快照文件头，魔数(ZKSN)+快照版本(2)+dbId(-1) */
                 FileHeader header = new FileHeader(SNAP_MAGIC, VERSION, dbId);
+                /** 将DataTree、Session、快照文件头header序列化，并输出到IO流(oa)中 */
                 serialize(dt, sessions, oa, header);
+                /** seal(密封、盖章)，快照文件末尾追加校验和与特殊结束标识/ */
                 SnapStream.sealStream(snapOS, oa);
 
                 // Digest feature was added after the CRC to make it backward
@@ -255,7 +270,7 @@ public class FileSnap implements SnapShot {
                 if (dt.serializeZxidDigest(oa)) {
                     SnapStream.sealStream(snapOS, oa);
                 }
-
+                /** 封装成最新的快照信息，保存起来，快照信息包括: 最大的zxId、生成快照的时间戳 */
                 lastSnapshotInfo = new SnapshotInfo(
                     Util.getZxidFromName(snapShot.getName(), SNAPSHOT_FILE_PREFIX),
                     snapShot.lastModified() / 1000);

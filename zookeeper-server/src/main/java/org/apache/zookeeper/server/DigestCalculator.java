@@ -24,16 +24,19 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.StatPersisted;
 
 /**
+ * 摘要计算器
  * Defines how to calculate the digest for a given node.
  */
 public class DigestCalculator {
 
     // The hardcoded digest version, should bump up this version whenever
     // we changed the digest method or fields.
+    /** 硬编码方式定义当前使用的摘要版本，如果以后摘要算法变了，要提升该版本号 */
     private static final int DIGEST_VERSION = 2;
 
 
     /**
+     * 计算摘要值
      * Calculate the digest based on the given params.
      *
      * Besides the path and data, the following stat fields are included in
@@ -57,6 +60,7 @@ public class DigestCalculator {
     long calculateDigest(String path, byte[] data, StatPersisted stat) {
 
         if (!ZooKeeperServer.isDigestEnabled()) {
+            /** 如果没有启用摘要，则返回摘要值0 */
             return 0;
         }
 
@@ -70,6 +74,7 @@ public class DigestCalculator {
         // digest version in the protocol enables us to change the digest
         // calculation without disrupting the system.
         if (path.startsWith(ZooDefs.ZOOKEEPER_NODE_SUBTREE)) {
+            /** /zookeeper/ 路径子的节点都不计算摘要，直接返回0 */
             return 0;
         }
 
@@ -94,6 +99,7 @@ public class DigestCalculator {
         bb.putInt(stat.getAversion());
         bb.putLong(stat.getEphemeralOwner());
 
+        /** 使用CRC32计算摘要值 */
         CRC32 crc = new CRC32();
         crc.update(path.getBytes());
         if (data != null) {
@@ -108,6 +114,7 @@ public class DigestCalculator {
      */
     long calculateDigest(String path, DataNode node) {
         if (!node.isDigestCached()) {
+            /** 如果没有计算过摘要值，则计算摘要并缓存在节点中 */
             node.setDigest(calculateDigest(path, node.getData(), node.stat));
             node.setDigestCached(true);
         }

@@ -31,6 +31,8 @@ import org.apache.zookeeper.server.DataTree;
 public interface SnapShot {
 
     /**
+     * 根据快照文件反序列化出DataTree和Session，并将最大的zxId返回
+     *
      * deserialize a data tree from the last valid snapshot and
      * return the last zxid that was deserialized
      * @param dt the datatree to be deserialized into
@@ -41,6 +43,8 @@ public interface SnapShot {
     long deserialize(DataTree dt, Map<Long, Integer> sessions) throws IOException;
 
     /**
+     * 将内存中DataTree和Session序列化，并持久化到文件中
+     *
      * persist the datatree and the sessions into a persistence storage
      * @param dt the datatree to be serialized
      * @param sessions the session timeouts to be serialized
@@ -51,6 +55,8 @@ public interface SnapShot {
     void serialize(DataTree dt, Map<Long, Integer> sessions, File name, boolean fsync) throws IOException;
 
     /**
+     * 寻找最新的快照文件
+     *
      * find the most recent snapshot file
      * @return the most recent snapshot file
      * @throws IOException
@@ -58,6 +64,7 @@ public interface SnapShot {
     File findMostRecentSnapshot() throws IOException;
 
     /**
+     * 获取最新的快照文件信息
      * get information of the last saved/restored snapshot
      * @return info of last snapshot
      */

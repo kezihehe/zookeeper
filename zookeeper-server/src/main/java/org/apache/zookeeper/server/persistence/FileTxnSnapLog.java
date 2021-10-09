@@ -123,6 +123,7 @@ public class FileTxnSnapLog {
         trustEmptySnapshot = Boolean.getBoolean(ZOOKEEPER_SNAPSHOT_TRUST_EMPTY);
         LOG.info("{} : {}", ZOOKEEPER_SNAPSHOT_TRUST_EMPTY, trustEmptySnapshot);
 
+        /** 检查dataDir目录是否存在，不存在创建；并检查是否可以写入数据 */
         if (!this.dataDir.exists()) {
             if (!enableAutocreate) {
                 throw new DatadirException(String.format(
@@ -140,6 +141,7 @@ public class FileTxnSnapLog {
             throw new DatadirException("Cannot write to data directory " + this.dataDir);
         }
 
+        /** 检查snapDir目录是否存在，不存在创建；并检查是否可以写入数据 */
         if (!this.snapDir.exists()) {
             // by default create this directory, but otherwise complain instead
             // See ZOOKEEPER-1161 for more details
@@ -162,10 +164,14 @@ public class FileTxnSnapLog {
         // check content of transaction log and snapshot dirs if they are two different directories
         // See ZOOKEEPER-2967 for more details
         if (!this.dataDir.getPath().equals(this.snapDir.getPath())) {
+            /** 如果dataDir 和 snapDir不是同一个目录，即快照、事务日志不放在同一个目录时，需要检查一下各自目录下所有文件 */
+            /** 事务日志文件目录下，不能有快照文件 */
             checkLogDir();
+            /** 快照目录下，不能有事务日志文件 */
             checkSnapDir();
         }
 
+        /** 实例化事务日志、快照组件 */
         txnLog = new FileTxnLog(this.dataDir);
         snapLog = new FileSnap(this.snapDir);
 

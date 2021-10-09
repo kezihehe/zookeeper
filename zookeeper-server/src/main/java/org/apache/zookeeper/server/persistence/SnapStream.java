@@ -184,6 +184,7 @@ public class SnapStream {
         }
 
         boolean isValid = false;
+        /** 根据快照文件的扩展名，获取文件流格式，默认是 CHECKED */
         switch (getStreamMode(file.getName())) {
         case GZIP:
             isValid = isValidGZipStream(file);
@@ -193,6 +194,7 @@ public class SnapStream {
             break;
         case CHECKED:
         default:
+            /** 校验文件长度、结束符等是否符合快照文件格式 */
             isValid = isValidCheckedStream(file);
         }
         return isValid;
