@@ -257,8 +257,10 @@ public class FileTxnSnapLog {
      */
     public long restore(DataTree dt, Map<Long, Integer> sessions, PlayBackListener listener) throws IOException {
         long snapLoadingStartTime = Time.currentElapsedTime();
+        /** 根据快照文件反序列化DataTree、Session信息，并返回快照中最大的zxId */
         long deserializeResult = snapLog.deserialize(dt, sessions);
         ServerMetrics.getMetrics().STARTUP_SNAP_LOAD_TIME.add(Time.currentElapsedTime() - snapLoadingStartTime);
+        /** 实例化事务日志文件组件，准备读取事务日志，用于恢复数据 */
         FileTxnLog txnLog = new FileTxnLog(dataDir);
         boolean trustEmptyDB;
         File initFile = new File(dataDir.getParent(), "initialize");
@@ -333,6 +335,7 @@ public class FileTxnSnapLog {
         DataTree dt,
         Map<Long, Integer> sessions,
         PlayBackListener listener) throws IOException {
+        /** 从快照中恢复的zxId+1开始，迭代事务日志 */
         TxnIterator itr = txnLog.read(dt.lastProcessedZxid + 1);
         long highestZxid = dt.lastProcessedZxid;
         TxnHeader hdr;
@@ -345,6 +348,7 @@ public class FileTxnSnapLog {
                 hdr = itr.getHeader();
                 if (hdr == null) {
                     //empty logs
+                    /** 没有事务日志，直接返回即可 */
                     return dt.lastProcessedZxid;
                 }
                 if (hdr.getZxid() < highestZxid && highestZxid != 0) {
@@ -364,6 +368,7 @@ public class FileTxnSnapLog {
                                           e);
                 }
                 listener.onTxnLoaded(hdr, itr.getTxn(), itr.getDigest());
+                /** 继续迭代下一条事务日志，直到没有事务日志为止 */
                 if (!itr.next()) {
                     break;
                 }
@@ -378,7 +383,7 @@ public class FileTxnSnapLog {
         LOG.info("{} txns loaded in {} ms", txnLoaded, loadTime);
         ServerMetrics.getMetrics().STARTUP_TXNS_LOADED.add(txnLoaded);
         ServerMetrics.getMetrics().STARTUP_TXNS_LOAD_TIME.add(loadTime);
-
+        /** 返回事务日志中最大的zxId */
         return highestZxid;
     }
 
@@ -409,6 +414,7 @@ public class FileTxnSnapLog {
     }
 
     /**
+     * 处理事务日志，将事务日志应用到DataTree上，恢复数据
      * process the transaction on the datatree
      * @param hdr the hdr of the transaction
      * @param dt the datatree to apply transaction to
@@ -469,6 +475,7 @@ public class FileTxnSnapLog {
     }
 
     /**
+     * 生成快照文件
      * save the datatree and the sessions into a snapshot
      * @param dataTree the datatree to be serialized onto disk
      * @param sessionsWithTimeouts the session timeouts to be
@@ -480,10 +487,14 @@ public class FileTxnSnapLog {
         DataTree dataTree,
         ConcurrentHashMap<Long, Integer> sessionsWithTimeouts,
         boolean syncSnap) throws IOException {
+
+        /** 生成快照文件时，当前系统中处理的最大zxId */
         long lastZxid = dataTree.lastProcessedZxid;
+        /** 创建一个快照文件，文件名: snapshot.十六进制zxId.文件格式扩展名 */
         File snapshotFile = new File(snapDir, Util.makeSnapshotName(lastZxid));
         LOG.info("Snapshotting: 0x{} to {}", Long.toHexString(lastZxid), snapshotFile);
         try {
+            /** 调用快照的具体实现，将DataTree、Session信息序列化到磁盘文件 */
             snapLog.serialize(dataTree, sessionsWithTimeouts, snapshotFile, syncSnap);
         } catch (IOException e) {
             if (snapshotFile.length() == 0) {
